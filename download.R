@@ -1,36 +1,30 @@
-# Filter the downloaded tweets
-filter_tweets <- function(twt) {
-  twt <- gsub('(#|@|https?)[-a-zA-Z0-9@:%._//+~#=]*|(rt|RT)|[\n\t\r]', ' ', na.omit(twt))
-  return(unique(na.omit(iconv(twt, to = 'ASCII', sub = ''))))
-}
-
-library(twitteR)
+library (twitteR)
 
 # First create a CSV file with twitter app credentials with header
 # API_KEY,API_SECRET,ACCESS_TOKEN,ACCESS_TOKEN_SECRET
 
 # Load secrets, keywords and geolocations
-secrets <- read.csv(file = './twitter/credentials.csv', header = TRUE, sep = ',')
-keywords <- read.csv(file = './twitter/keywords.csv', header = TRUE, sep = ',')
-locations <- read.csv(file = './twitter/geolocations.csv', header = TRUE, sep = ',')
+twitter.secrets   <- read.csv (file = './twitter/credentials.csv', header = TRUE, sep = ',')
+twitter.keywords  <- read.csv (file = './twitter/keywords.csv', header = TRUE, sep = ',')
+twitter.locations <- read.csv (file = './twitter/geolocations.csv', header = TRUE, sep = ',')
 
 # Set-up twitter oauth authentication
-setup_twitter_oauth(secrets$KEY, secrets$SECRET, access_token = secrets$TOKEN, access_secret = secrets$TOKEN_SECRET)
+setup_twitter_oauth (twitter.secrets$KEY, twitter.secrets$SECRET, 
+                     access_token  = twitter.secrets$TOKEN, 
+                     access_secret = twitter.secrets$TOKEN_SECRET)
 
-tw = data.frame(text = NA)
+# Create an empty dataframe to save the tweets
+tweets.df <- data.frame(text <- character())
 
-for (coordinate in locations$GEOLOCATION) {
-  for (search_word in keywords$KEYWORDS) {
-    print(paste(search_word, coordinate, sep = ' '))
-    d <- twListToDF(searchTwitter(toString(search_word), lang = 'en', geocode = paste(toString(coordinate), "20mi", sep = ",")))
-    print(d$text)
-    # tw <- rbind(tw, apply(d$text, 1, filter_tweets))
-    # print(tw)
+# Iterate over keywords and locations to download tweets
+for (location in twitter.locations$GEOLOCATION) {
+  for (keyword in twitter.keywords$KEYWORDS) {
+    tweets.list <- searchTwitter(toString(keyword), 
+                                 lang = 'en', 
+                                 geocode = paste(toString(location), '20mi', sep = ','))
+    if (length(tweets.list) > 0) {
+      tweets.text <- twListToDF(tweets.list)['text']
+      tweets.df   <- rbind(tweets.df, tweets.text)
+    }
   }
 }
-colnames(tw) <- c('TWEETS')
-write.csv(tw, file = './data/newtweets.csv')
-pre <- read.csv(file = './data/tweets.csv')
-tw <- rbind(pre, tw)
-
-write.csv(tw, file = './data/tweets.csv')
