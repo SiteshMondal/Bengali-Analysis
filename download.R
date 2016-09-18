@@ -28,3 +28,15 @@ for (location in twitter.locations$GEOLOCATION) {
     }
   }
 }
+
+# Filter the data
+regex.pattern    <- '(@|#|https?)[-a-zA-Z0-9@:%._/+~#=]*|(rt|RT)|[\n\t\r]'
+tweets.nodup     <- unique(na.omit(tweets.df[,1]))
+tweets.filtered  <- gsub(regex.pattern, '', tweets.nodup)
+tweets.data      <- data.frame(TWEETS = iconv(tweets.filtered, to = "ASCII", sub = ''))
+
+# Append the data to the previously downloaded data
+tweets.prev  <- read.csv('./data/tweets.csv', header = TRUE, sep = ',')
+tweets.total <- unique(rbind(tweets.prev['TWEETS'], tweets.data['TWEETS']))
+write.csv(tweets.total, './data/tweets.csv')
+
